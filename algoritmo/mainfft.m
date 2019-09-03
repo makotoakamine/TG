@@ -12,7 +12,7 @@ dy = 1.0;
 
 
 %--- Time integration parameters:
-nstep =   80000;
+nstep =   100*60*60*24;
 nprint=    50;
 dtime = 1.0e-2;
 ttime = 0.0;
@@ -52,7 +52,7 @@ MFe = DFe/RT;
 MCr = DCr/RT;
 mcoef_cr=cr0*(1.0-cr0)*(DCr/RT);
 mcoef_cr=cr0*(1.0-cr0)*(cr0*MFe + (1-cr0)*MCr);
-mcoef_cr = mcoef_cr*1e26;
+%mcoef_cr = mcoef_cr*1e26;
 %---inicialização da microestrutura com concentração c0
 [cr] = micro_ch_pre(Nx,Ny,cr0);
 

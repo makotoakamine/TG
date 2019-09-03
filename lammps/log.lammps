@@ -1,0 +1,37 @@
+LAMMPS (7 Aug 2019)
+OMP_NUM_THREADS environment is not set. Defaulting to 1 thread. (../comm.cpp:93)
+  using 1 OpenMP thread(s) per MPI task
+# sample LAMMPS input script for diffusion of 2d LJ liquid
+# mean-squared displacement via compute msd
+
+# settings
+variable		latparam1 equal 4
+variable		t equal 773
+# problem setup
+
+units			metal
+dimension		3
+boundary		p p p
+atom_style		atomic
+neigh_modify	delay 0 every 1
+
+lattice         bcc ${latparam1}
+lattice         bcc 4
+Lattice spacing in x,y,z = 4 4 4
+region			1 block 0 ${latparam1} 0 ${latparam1} 0 ${latparam1} units box
+region			1 block 0 4 0 ${latparam1} 0 ${latparam1} units box
+region			1 block 0 4 0 4 0 ${latparam1} units box
+region			1 block 0 4 0 4 0 4 units box
+create_box		1 1
+Created orthogonal box = (0 0 0) to (4 4 4)
+  1 by 1 by 1 MPI processor grid
+create_atoms	1 box
+Created 2 atoms
+  create_atoms CPU = 0 secs
+#create_box     1 simbox
+#create_atoms   1 box
+
+pair_style		eam/cd
+pair_coeff		* * ../potentials/FeCr.cdeam Fe Cr
+ERROR: Incorrect args for pair coefficients (../pair_eam_alloy.cpp:51)
+Last command: pair_coeff		* * ../potentials/FeCr.cdeam Fe Cr
