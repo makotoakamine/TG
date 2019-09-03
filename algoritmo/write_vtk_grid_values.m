@@ -4,7 +4,7 @@ format long
 
 %-- open output file
 
-fname=sprintf('time_%d.vtk',istep);
+fname=sprintf('result/time_%d.vtk',istep);
 out =fopen(fname,'w');
 
 nz=1;

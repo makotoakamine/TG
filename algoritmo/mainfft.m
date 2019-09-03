@@ -32,7 +32,9 @@ int_par = 18600 + 0.1*tempr;
 %grcoef_cr = 4e-16; %Coeficiente gradiente de energia - Segundo 2.1 BARKAR et al - Effect of concentration dependent gradient energy coefficient on spinodal decomposition in the Fe-Cr system
 Hmix = cr0*(1-cr0)*int_par;
 grcoef_cr = (2/3)*Hmix*nn;
-grcoef_cr = Hmix*((nn^2)/2);
+%grcoef_cr = Hmix*((nn^2)/2);
+grcoef_cr = grcoef_cr*1e10;
+
 
 
 
@@ -50,7 +52,7 @@ MFe = DFe/RT;
 MCr = DCr/RT;
 mcoef_cr=cr0*(1.0-cr0)*(DCr/RT);
 mcoef_cr=cr0*(1.0-cr0)*(cr0*MFe + (1-cr0)*MCr);
-mcoef_cr = mcoef_cr*1e30;
+mcoef_cr = mcoef_cr*1e26;
 %---inicialização da microestrutura com concentração c0
 [cr] = micro_ch_pre(Nx,Ny,cr0);
 
@@ -108,7 +110,7 @@ for istep =1:nstep
 	[dgdcr] = Fe_Cr_free_energy(Nx,Ny,cr0,cr,Rconst,tempr);
 
   
-  dgdcrk = fft2(dgdcr);
+	dgdcrk = fft2(dgdcr);
   
   
   
