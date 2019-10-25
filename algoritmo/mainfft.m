@@ -12,7 +12,7 @@ dy = 1.0;
 
 
 %--- Time integration parameters:
-nstep =   100*60*60*24;
+nstep =   100*60*60*24*2;
 nprint=    50;
 dtime = 1.0e-2;
 ttime = 0.0;
@@ -33,18 +33,18 @@ int_par = 18600 + 0.1*tempr;
 Hmix = cr0*(1-cr0)*int_par;
 grcoef_cr = (2/3)*Hmix*nn;
 %grcoef_cr = Hmix*((nn^2)/2);
-grcoef_cr = grcoef_cr*1e10;
+grcoef_cr = grcoef_cr*1e20;
 
 
 
 
 %--Parâmetros de difusividade para mobilidade:
 %--Segundo 2.3 BARKAR et al - Effect of concentration dependent gradient energy coefficient on spinodal decomposition in the Fe-Cr system
-QCr=3.08e5; %Valor dummy - falta alterar com os dados do Thermo-Calc
+QCr=3.08e5;
 D0Cr=2e-5;
 DCr=(D0Cr*exp(-QCr/RT));
 
-QFe=2.94e5; %Valor dummy - falta alterar com os dados do Thermo-Calc
+QFe=2.94e5; 
 D0Fe=1e-4;
 DFe=(D0Fe*exp(-QFe/RT));
 %--- Mobilidade

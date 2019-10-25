@@ -4,7 +4,8 @@ format long;
 
 RT=R*tempr;
 
-Coef=17000.0;
+%Coef=17000.0;
+L = 20500 - 9.68*tempr;
 
 for i=1:Nx
 	for j=1:Ny
@@ -48,18 +49,18 @@ for i=1:Nx
 			%== Equação 5.27 BINER segundo SGTE
 			%derivada da função G em relação a concentração de Cro
 			%falta levar em consideração G_excesso
-			dgcr=-Gfe+Gcr+Coef*c1*c2-RT*log(c2/c1); % Gex
+			dgcr=-Gfe+Gcr+L*(1-2*c2)-RT*log(c2/c1); % Gex
 %dgcua=1.4613878411949395E-4*(36076.894*c1+6842.810456*(log(c2)-log(c1))-36076.894*c2+2984.135);
 			dgdcr(i,j)=dgcr;
 		end % if 
 		 
 		if(c1 >=0.9995)
-			dgcr=-2.0*Coef*((1.0-c2)-0.9995);
+			dgcr=-2.0*L*((1.0-c2)-0.9995);
 			dgdcr(i,j)=dgcr;
 		end %if
 		
 		if( c1 <= 0.0005)
-			dgcr=-2.0*Coef*((1.0-c2)-0.0005);
+			dgcr=-2.0*L*((1.0-c2)-0.0005);
 			dgdcu(i,j)=dgcr;
 		end %if
 		
