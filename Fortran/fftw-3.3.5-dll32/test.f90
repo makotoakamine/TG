@@ -1,6 +1,7 @@
 program test
 use, intrinsic :: iso_c_binding 
 use fftw3
+!include fftw3
 implicit none
 
 real*16 , parameter :: PI=4.D0*DATAN(1.D0)

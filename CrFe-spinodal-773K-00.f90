@@ -19,9 +19,8 @@ program teste
     double precision,parameter  :: l=25.0
     double precision,parameter  :: calloy = 0.46774
     double precision,parameter  :: dt=0.05
-    double precision            :: T=773.15
     double precision            :: dx,dy
-    double precision            :: c(0:nx+1,0:ny+1)
+    double precision            ::  c(0:nx+1,0:ny+1)
     double precision            :: c0(0:nx+1,0:ny+1)
     double precision            :: gr2c(0:nx+1,0:ny+1)
     double precision            :: mu1(0:nx+1,0:ny+1)
@@ -260,62 +259,22 @@ end subroutine initial
 !------------------------------------------------------------------------------
 ! chemical free energy
 
-subroutine gchem(c,nx,ny,g,T,RT)
+subroutine gchem(c,nx,ny,g)
 
-!    double precision :: A1,A2,A3,A4,A5,A6,A7
-!    double precision :: g(0:nx+1,0:ny+1)
-!    double precision :: c(0:nx+1,0:ny+1)
-!
-!    A1 =-24468.31
-!    A2 =-28275.33
-!    A3 = 4167.994
-!    A4 = 7052.907
-!    A5 = 12089.93
-!    A6 = 2568.625
-!    A7 =-2345.293
-!
-!    g = A1*c + A2*(1-c) + A3*c*log(c) + A4*(1-c)*log(1-c) + A5*c*(1-c) &
-!        + A6*c*(1-c)*(2*c-1) + A7*c*(1-c)*(2*c-1)*(2*c-1)
-
-    double precision :: GFe,GCr,p,D,B0,Tc,tal,a0,a1,P,A,L
+    double precision :: A1,A2,A3,A4,A5,A6,A7
     double precision :: g(0:nx+1,0:ny+1)
     double precision :: c(0:nx+1,0:ny+1)
-	
-!	Dados SGTE da energia livre em funcao da Temperatura para Fe BCC_A2 paramagnetico
 
-    p = 0.4
-    D = 1.55828482; ! D = 510/1125 + (11692/15975)*(1/p-1)
-    B0 =  2.22;
-    Tc = T/1043;
-    tal = 1/Tc;
-    if (tal <= 1) then
-        gtal = 1-((79/140)*(1/p)*(tal^(-1)) + (474/497)*(1/p-1)*((tal^3)/6 + (tal^9)/135 + (tal^15)/600))/D;
-    else
-        gtal = -( ((tal^(-5))/10 + (tal^(-15))/315 + (tal^(-25))/1500 )/D );
-    end if
-    Gmag = RT*log(B0+1)*gtal;
+    A1 =-24468.31
+    A2 =-28275.33
+    A3 = 4167.994
+    A4 = 7052.907
+    A5 = 12089.93
+    A6 = 2568.625
+    A7 =-2345.293
 
-    a0 = 2.3987E-5;
-    a1 = 2.569E-8;
-    P = 10E5;
-    A = 7.042095E-6;
-    Gpres = A*P*(1+a0*T + (a1/2)*(T^2));
-
-    Gfe = 0 + Gmag  + Gpres; ! 298.15 < T < 6000.00
-
-
-!	Dados SGTE da energia livre em funcao da Temperatura para Cr BCC_A2 paramagnetico
-    a0 = 1.5E-5;
-    a1 = 1.84E-8;
-    P = 10E5;
-    A = 7.188E-6;
-    Gpres = A*P*(1+a0*T + (a1/2)*(T^2));
-
-    Gcr = 0 + Gpres; ! 311.50 < T < 6000.00
-
-    L = L = 20500 - 9.68*T;
-
-    g =(1-c)*GFe+c*GCr+L*(1-c)*c+RT*(c*log(c)-(1-c)*log(1-c);
+    g = A1*c + A2*(1-c) + A3*c*log(c) + A4*(1-c)*log(1-c) + A5*c*(1-c) &
+        + A6*c*(1-c)*(2*c-1) + A7*c*(1-c)*(2*c-1)*(2*c-1)
 
     return
 
@@ -324,62 +283,22 @@ end subroutine gchem
 !------------------------------------------------------------------------------
 ! 1st derivative of free energy
 
-subroutine d1g(c,nx,ny,dg,T,RT)
+subroutine d1g(c,nx,ny,dg)
 
-!    double precision :: A1,A2,A3,A4,A5,A6,A7
-!    double precision :: c(0:nx+1,0:ny+1)
-!    double precision :: dg(0:nx+1,0:ny+1)
-!
-!    A1 =-24468.31
-!    A2 =-28275.33
-!    A3 = 4167.994
-!    A4 = 7052.907
-!    A5 = 12089.93
-!    A6 = 2568.625
-!    A7 =-2345.293
-!
-!    dg = A1-A2 + A3*(1+log(c)) - A4*(1+log(1-c)) + A5*(1-2*c) + &
-!         A6*(-6*c**2 + 6*c -1) + A7*(-16*c**3 + 24*c**2 - 10*c + 1)
-
-    double precision :: GFe,GCr,p,D,B0,Tc,tal,a0,a1,P,A,L
-    double precision :: g(0:nx+1,0:ny+1)
+    double precision :: A1,A2,A3,A4,A5,A6,A7
     double precision :: c(0:nx+1,0:ny+1)
-	
-!	Dados SGTE da energia livre em funcao da Temperatura para Fe BCC_A2 paramagnetico
+    double precision :: dg(0:nx+1,0:ny+1)
 
-    p = 0.4
-    D = 1.55828482; ! D = 510/1125 + (11692/15975)*(1/p-1)
-    B0 =  2.22;
-    Tc = T/1043;
-    tal = 1/Tc;
-    if (tal <= 1) then
-        gtal = 1-((79/140)*(1/p)*(tal^(-1)) + (474/497)*(1/p-1)*((tal^3)/6 + (tal^9)/135 + (tal^15)/600))/D;
-    else
-        gtal = -( ((tal^(-5))/10 + (tal^(-15))/315 + (tal^(-25))/1500 )/D );
-    end if
-    Gmag = RT*log(B0+1)*gtal;
+    A1 =-24468.31
+    A2 =-28275.33
+    A3 = 4167.994
+    A4 = 7052.907
+    A5 = 12089.93
+    A6 = 2568.625
+    A7 =-2345.293
 
-    a0 = 2.3987E-5;
-    a1 = 2.569E-8;
-    P = 10E5;
-    A = 7.042095E-6;
-    Gpres = A*P*(1+a0*T + (a1/2)*(T^2));
-
-    Gfe = 0 + Gmag  + Gpres; ! 298.15 < T < 6000.00
-
-
-!	Dados SGTE da energia livre em funcao da Temperatura para Cr BCC_A2 paramagnetico
-    a0 = 1.5E-5;
-    a1 = 1.84E-8;
-    P = 10E5;
-    A = 7.188E-6;
-    Gpres = A*P*(1+a0*T + (a1/2)*(T^2));
-
-    Gcr = 0 + Gpres; ! 311.50 < T < 6000.00
-
-    L = L = 20500 - 9.68*T;
-
-    dg =(-GFe+GCr+L*(1-2*c)+RT*log(c/(1-c)))/RT;
+    dg = A1-A2 + A3*(1+log(c)) - A4*(1+log(1-c)) + A5*(1-2*c) + &
+         A6*(-6*c**2 + 6*c -1) + A7*(-16*c**3 + 24*c**2 - 10*c + 1)
 
     return
 
