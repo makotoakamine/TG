@@ -11,6 +11,7 @@ real*16, parameter :: b=4*PI
 real*16, parameter :: L=(b-a)
 real*16,parameter :: dx=L/N
 integer :: i
+real*16 ::dev
 integer, parameter :: N2 = N/2
 real(C_DOUBLE), pointer :: x(:)
 type(C_PTR) px
@@ -119,5 +120,7 @@ x = (/(i*dx, i=0,(N-1),1)/)
   print *, dy
 
   call fftw_destroy_plan ( plan )
+  dev = sum(dy-(in(i)/N))
+  print *, "dev= ", dev
 
   end

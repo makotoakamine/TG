@@ -5,13 +5,12 @@
 !------------------------------------------------------------------------------
 
 program teste
-    use, intrinsic :: iso_c_binding 
     use fftw3
     implicit none
 
 !------------------------------------------------------------------------------
  
-    integer,parameter           :: nx=8,ny=8,nz=1
+    integer,parameter           :: nx=64,ny=64,nz=1
     integer,parameter           :: freq=1000
     integer,parameter           :: tmax= 6000000
     integer,parameter           :: zero=0
@@ -116,7 +115,7 @@ type(C_PTR)                        :: pout
 
 
 real*16                            :: k
-type(C_PTR)                        :: plan
+type(C_PTR)                        :: plan,invplan
 
 real*16                            :: gmed,cmed
 
@@ -219,6 +218,9 @@ call c_f_pointer(pout,out,[nx,ny])
     vtkfile = 'vtk/time_0.vtk'
     call savevtk(c0,nx,ny,nz,dx,dy,vtkfile)
 
+	plan =  fftw_plan_dft_2d ( nx, ny, in, out, FFTW_FORWARD, FFTW_MEASURE )
+	invplan = dfftw_plan_dft_2d ( nx, ny, in, out, FFTW_BACKWARD, FFTW_MEASURE )
+
     write(*,*)
 
     write(*,"(A)") "! ! ! ! ! ! ! ! ! Initialization done ! ! ! ! ! ! ! ! !"
@@ -266,49 +268,44 @@ call c_f_pointer(pout,out,[nx,ny])
 !        c0 = c
 
 		in = c
-        print *, c
-		PAUSE
-		call dfftw_plan_dft_2d ( plan, nx, ny, in, ck, FFTW_FORWARD, FFTW_ESTIMATE )
-		call dfftw_execute_dft ( plan, in, ck )
-		call dfftw_destroy_plan ( plan )
-        print *, ck
-		PAUSE
+		!ck = cmplx(float(0),float(0))
 
-        call d1g(c0,nx,ny,df)
+		call fftw_execute_dft ( plan, in, out)
+		ck = out
+
+        call d1g(c,nx,ny,df)
 		in = df
 
-		call dfftw_plan_dft_2d ( plan, nx, ny, in, dfk, FFTW_FORWARD, FFTW_ESTIMATE )
-		call dfftw_execute_dft ( plan,in,dfk )
-		call dfftw_destroy_plan ( plan )
-        print *, "dfk"
-        print *, dfk
-		PAUSE
-        cktemp = (ck - dt*(1E18*mob)*dfk*k2) / (1.0 + dt*(1E18*k)*k4*(1E18*mob));
-        !cktemp = (ck - dt*(mob)*dfk*k2) / (1.0 + dt*(k)*k4*(mob));
+		!dfk = cmplx(float(0),float(0))
 
-        print *, "cktemp"
-        print *, cktemp
-		PAUSE
-		
-		call dfftw_plan_dft_2d ( plan, nx, ny, cktemp, out, FFTW_FORWARD, FFTW_ESTIMATE )
-		call dfftw_execute_dft ( plan , cktemp , out)
-		call dfftw_destroy_plan ( plan )
+		call fftw_execute_dft ( plan,in, out)
+
+        in = (ck - dt*(1E18*mob)*dfk*k2) / (1.0 + dt*(1E18*k)*k4*(1E18*mob));
+
+		call fftw_execute_dft ( invplan , in , out)
 		c0 = out
-        print *, "c0"
-        print *, c0
-		PAUSE
 
 		c = c0/(nxy)
 
-        print *, c
-		PAUSE
+		do i=1,nx
+			do j=1,ny
+				if (c(i,j) >= 0.9999) then
+					c(i,j) = 0.9999
+				end if
+				if (c(i,j) <= 0.00001) then
+					c(i,j) = 0.00001
+				end if
+			enddo
+		enddo
+
+		
 
         !--- output
         if(mod(t,freq)==0) then
 
             !--- write c field to vtk file
             write(vtkfile,"(A9,I0,A4)") "vtk/time_",t,".vtk"
-            call savevtk(c0,nx,ny,nz,dx,dy,vtkfile)
+            call savevtk(c,nx,ny,nz,dx,dy,vtkfile)
 
             !--- calculate sum of free energy and c 
             call gchem(c,nx,ny,g)
@@ -467,8 +464,8 @@ subroutine gchem(c,nx,ny,g)
 
 implicit none
     integer, intent(in) :: nx,ny
-    real*16, intent(in) :: c(1:nx,1:ny)
-    real*16, intent(out) :: g(1:nx,1:ny)
+    real*8, intent(in) :: c(1:nx,1:ny)
+    real*8, intent(out) :: g(1:nx,1:ny)
     real*16 :: A1,A2,A3,A4,A5,A6,A7
     !double precision :: g(0:nx+1,0:ny+1)
     !double precision :: c(0:nx+1,0:ny+1)
@@ -540,8 +537,8 @@ subroutine d1g(c,nx,ny,dg)
 implicit none
 
     integer, intent(in) :: nx,ny
-    real*16, intent(in) :: c(1:nx,1:ny)
-    real*16, intent(out) :: dg(1:nx,1:ny)
+    real*8, intent(in) :: c(1:nx,1:ny)
+    real*8, intent(out) :: dg(1:nx,1:ny)
     real*16 :: A1,A2,A3,A4,A5,A6,A7
     !double precision :: g(0:nx+1,0:ny+1)
     !double precision :: c(0:nx+1,0:ny+1)
@@ -608,9 +605,9 @@ end subroutine d1g
 subroutine mobility(c,nx,ny,mob)
 implicit none
 
-    real*16, intent(in)  :: c(1:nx,1:ny)
+    real*8, intent(in)  :: c(1:nx,1:ny)
 	integer, intent(in)           :: nx,ny
-    real*16, intent(out) :: mob(1:nx,1:ny)
+    real*8, intent(out) :: mob(1:nx,1:ny)
     real*16              :: A1,A2,A3,A4,A5,A6,A7
     real*16              :: B1,B2,B3,B4,B5,B6,B7
 !    real*16 :: c(0:nx+1,0:ny+1)
@@ -728,8 +725,8 @@ implicit none
 
     integer, intent(in)           :: nx,ny,nz
     real*16, intent(in)  :: dx,dy
-    real*16  :: c(1:nx,1:ny)
-    real*16  :: x,y,z
+    real*8  :: c(1:nx,1:ny)
+    real*8  :: x,y,z
 
     integer           :: ierror,unit,npoin,i,j
 
@@ -805,11 +802,11 @@ subroutine prepare_fft(k2,k4,nx,ny,dx,dy)
   integer :: Nx2
   integer :: Ny2
   !double precision, dimension(nx) :: kx
-  real(C_DOUBLE) :: k2(1:nx,1:ny)
-  real*16 :: k4(1:nx,1:ny)
-  real*16 :: kx(1:nx)
+  real*8 :: k2(1:nx,1:ny)
+  real*8 :: k4(1:nx,1:ny)
+  real*8 :: kx(1:nx)
   !double precision, dimension(ny) :: ky
-  real*16 :: ky(1:ny)
+  real*8 :: ky(1:ny)
   Nx2 = nx/2
   Ny2 = ny/2
 

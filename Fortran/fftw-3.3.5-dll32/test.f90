@@ -5,12 +5,13 @@ use fftw3
 implicit none
 
 real*16 , parameter :: PI=4.D0*DATAN(1.D0)
-integer, parameter :: N=16
+integer, parameter :: N=128
 real*16, parameter :: a=0
 real*16, parameter :: b=4*PI
 real*16, parameter :: L=(b-a)
 real*16,parameter :: dx=L/N
 integer :: i
+real*16 ::dev
 integer, parameter :: N2 = N/2
 real(C_DOUBLE), pointer :: x(:)
 type(C_PTR) px
@@ -35,6 +36,7 @@ type(C_PTR) :: pk
 double precision :: w
 
 type(C_PTR) plan
+type(C_PTR) planinv
   !double  complex :: in, out
 complex(C_DOUBLE_COMPLEX), pointer :: in(:)
 type(C_PTR) :: pin
@@ -94,30 +96,55 @@ x = (/(i*dx, i=0,(N-1),1)/)
 !    write(*,*) '    in(',i,') = ',in(i)
 !  enddo
 
+  plan = fftw_plan_dft_1d( N, in, out, FFTW_FORWARD, FFTW_MEASURE )
+  planinv = fftw_plan_dft_1d( N, in, out, FFTW_BACKWARD, FFTW_MEASURE )
+
   in = y
-  plan = fftw_plan_dft_1d( N, in, out, FFTW_FORWARD, FFTW_ESTIMATE )
-
   call fftw_execute_dft( plan, in,out )
+    yt = out
+  idyt = yt*k
+  in = idyt
 
-  call fftw_destroy_plan( plan )
+  call fftw_execute_dft( planinv, in, out )
+
+  write(*,*) 'derivada espectral | derivada real'
+  do i = 1,N,1
+    write(*,*) '    ',N,' * out(',i,') = ',out(i)/N , ' | ' , dy(i)
+  enddo
+
+  y = out/N
+
+  dev = sum(abs(dy-y))/N
+  print *, "dev= ", dev
+  
+
+  !y = sin(2*x)+cos(20+x)
+  !dy = -cos(2*x)+sin(20+x)
+  y = sin(2*x)-cos(x)
+  dy = 2*cos(2*x)+sin(x)
+
+  in = y
+  call fftw_execute_dft( plan, in,out )
 
     yt = out
   idyt = yt*k
-  out = idyt
+  in = idyt
 
 
-  plan = fftw_plan_dft_1d( N, out, in, FFTW_FORWARD, FFTW_ESTIMATE )
+  call fftw_execute_dft( planinv, in, out )
 
-  call fftw_execute_dft( plan, out , in )
-
-  write(*,*) 'derivada espectral'
+  write(*,*) 'derivada espectral | derivada real'
   do i = 1,N,1
-    write(*,*) '    ',N,' * in(',i,') = ',in(i)/N
+    write(*,*) '    ',N,' * out(',i,') = ',out(i)/N , ' | ' , dy(i)
   enddo
 
-  write(*,*) 'derivada real'
-  print *, dy
+  !write(*,*) 'derivada real'
+  !print *, dy
+  y = out/N
 
-  call fftw_destroy_plan ( plan )
+  dev = sum(abs(dy-y))/N
+  print *, "dev= ", dev
 
+  call fftw_destroy_plan( plan )
+  call fftw_destroy_plan ( planinv )
   end

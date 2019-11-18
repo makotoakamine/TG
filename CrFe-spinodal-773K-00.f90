@@ -10,7 +10,7 @@ program teste
 
 !------------------------------------------------------------------------------
  
-    integer,parameter           :: nx=100,ny=100,nz=1
+    integer,parameter           :: nx=64,ny=64,nz=1
     integer,parameter           :: freq=1000
     integer,parameter           :: tmax= 6000000
     integer,parameter           :: zero=0
