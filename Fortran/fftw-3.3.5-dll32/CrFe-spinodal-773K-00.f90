@@ -11,66 +11,18 @@ program teste
 !------------------------------------------------------------------------------
  
     integer,parameter           :: nx=64,ny=64,nz=1
-    integer,parameter           :: freq=1000
-    integer,parameter           :: tmax= 6000000
+    integer,parameter           :: freq=100
+    integer,parameter           :: tmax= 600000
     integer,parameter           :: zero=0
     integer                     :: nxy,t,ierror,i,j
+    !integer iret
+	real :: start,finish
 
     real*16,parameter  :: l=25.0
-    real*16,parameter  :: calloy = 0.46774
-    real*16,parameter  :: dt=0.05
+    real*16,parameter  :: calloy = 0.40
+    real*16,parameter  :: dt=0.50
     real*16            :: dx,dy
-!    real*16            :: c(0:nx+1,0:ny+1)
-!    real*16            :: c0(0:nx+1,0:ny+1)
-!    real*16            :: gr2c(0:nx+1,0:ny+1)
-!    real*16            :: mu1(0:nx+1,0:ny+1)
-!    real*16            :: mu2(0:nx+1,0:ny+1)
-!    real*16            :: df(0:nx+1,0:ny+1)
-!    real*16            :: g(0:nx+1,0:ny+1)
-!    real*16            :: gr1mu1(0:nx+1,0:ny+1)
-!    real*16            :: gr1mu2(0:nx+1,0:ny+1)
-!    real*16            :: mob(0:nx+1,0:ny+1)
-
-!    real*16, dimension(nx,ny)            :: c
-!    complex*16, dimension(nx,ny)            :: ck
-!    complex*16, dimension(nx,ny)            :: cktemp
-!    real*16, dimension(nx,ny)            :: c0
-!    real*16, dimension(nx,ny)            :: gr2c
-!    real*16            :: grcoef_cr
-!    real*16            :: mcoef_cr
-!    real*16, dimension(nx,ny)            :: mu1
-!    real*16, dimension(nx,ny)            :: mu2
-!    real*16, dimension(nx,ny)            :: df
-!    complex*16, dimension(nx,ny)            :: dfk
-!    real*16, dimension(nx,ny)            :: g
-!    real*16, dimension(nx,ny)            :: gr1mu1
-!    real*16, dimension(nx,ny)            :: gr1mu2
-!    real*16, dimension(nx,ny)            :: mob
-!    real*16, dimension(nx,ny)            :: k2,k4
-
-!    real*16            :: c(1:nx,1:ny)
-!    complex*32         :: ck(1:nx,1:ny)
-!    complex*32         :: cktemp(1:nx,1:ny)
-!    real*16            :: c0(1:nx,1:ny)
-!    real*16            :: c0k(1:nx,1:ny)
-!    real*16            :: gr2c(1:nx,1:ny)
-!    real*16            :: grcoef_cr(1:nx,1:ny)
-!    real*16            :: mcoef_cr(1:nx,1:ny)
-!    real*16            :: mu1(1:nx,1:ny)
-!    real*16            :: mu2(1:nx,1:ny)
-!    real*16            :: df(1:nx,1:ny)
-!    complex*16         :: dfk(1:nx,1:ny)
-!    real*16            :: g(1:nx,1:ny)
-!    real*16            :: gr1mu1(1:nx,1:ny)
-!    real*16            :: gr1mu2(1:nx,1:ny)
-!    real*16            :: mob(1:nx,1:ny)
-!    real*16            :: k2(1:nx,1:ny)
-!    real*16            :: k4(1:nx,1:ny)
-!    real*16            :: k
-!    integer*8          :: plan
-!
-!    complex*16, dimension(nx,ny) :: in
-!    complex*16, dimension(nx,ny) :: out
+    real*16            :: R,Temp,RT,QCr,QFe,D0Cr,D0Fe,DCr,DFe,MCr,MFe
 
 real(C_DOUBLE), pointer            :: c(:,:)
 type(C_PTR)                        :: pc
@@ -80,8 +32,6 @@ complex(C_DOUBLE_COMPLEX), pointer :: cktemp(:,:)
 type(C_PTR)                        :: pcktemp
 real(C_DOUBLE), pointer            :: c0(:,:)
 type(C_PTR)                        :: pc0
-real(C_DOUBLE), pointer            :: c0k(:,:)
-type(C_PTR)                        :: pc0k
 real(C_DOUBLE), pointer            :: gr2c(:,:)
 type(C_PTR)                        :: pgr2c
 real(C_DOUBLE), pointer            :: grcoef_cr(:,:)
@@ -113,21 +63,17 @@ type(C_PTR)                        :: pin
 complex(C_DOUBLE_COMPLEX), pointer :: out(:,:)
 type(C_PTR)                        :: pout
 
-
 real*16                            :: k
-type(C_PTR)                        :: plan,invplan
+type(C_PTR)                        :: plan_c2ck,plan_df2dfk,plan_ck2c
 
 real*16                            :: gmed,cmed
 
 character                   :: vtkfile*30
 
-
-
+    !--- total number of grid points
 nxy = nx*ny
 
-!pteste = fftw_alloc_real(int(nxy,C_SIZE_T))
-!call c_f_pointer(pteste,teste,[nx,ny])
-
+!Alocacao de memoria para as matrizes
 pc = fftw_alloc_real(int(nxy,C_SIZE_T))
 call c_f_pointer(pc,c,[nx,ny])
 
@@ -139,9 +85,6 @@ call c_f_pointer(pcktemp,cktemp,[nx,ny])
 
 pc0 = fftw_alloc_real(int(nxy,C_SIZE_T))
 call c_f_pointer(pc0,c0,[nx,ny])
-
-pc0k = fftw_alloc_real(int(nxy,C_SIZE_T))
-call c_f_pointer(pc0k,c0k,[nx,ny])
 
 pgr2c = fftw_alloc_real(int(nxy,C_SIZE_T))
 call c_f_pointer(pgr2c,gr2c,[nx,ny])
@@ -188,16 +131,20 @@ call c_f_pointer(pin,in,[nx,ny])
 pout = fftw_alloc_complex(int(nxy,C_SIZE_T))
 call c_f_pointer(pout,out,[nx,ny])
 
+!mult thread
+!call dfftw_init_threads(iret)
+!call dfftw_plan_with_nthreads(8)
 
 
-    grcoef_cr = 8.125E-16
-
-    mcoef_cr =  2.2841E-26
 
 !-------------------------------------------------------------------------------
 
     write(*,*)
     write(*,"(A)") "! ! ! ! ! ! ! ! ! Starting simulation ! ! ! ! ! ! ! ! !"
+
+	plan_c2ck = fftw_plan_dft_2d( nx, ny, in, ck, FFTW_FORWARD, FFTW_MEASURE )
+	plan_df2dfk = fftw_plan_dft_2d( nx, ny, in, dfk, FFTW_FORWARD, FFTW_MEASURE )
+	plan_ck2c = fftw_plan_dft_2d( nx, ny, cktemp, out, FFTW_BACKWARD, FFTW_MEASURE )
 
     !--- open file to save data
     open (20,FILE='data.txt',STATUS='REPLACE',ACTION='WRITE',IOSTAT=ierror)
@@ -205,9 +152,25 @@ call c_f_pointer(pout,out,[nx,ny])
     !--- space discretization
     dx = l/nx; dy = dx
 
-    !--- total number of grid points
 
+    R = 8.314472
+	T = 700.00
+	RT = R*T
+    grcoef_cr = 8.125E-16
+    mcoef_cr =  2.2841E-26
     k = 8.125E-16
+
+    QCr=3.08e5
+    QFe=2.94e5 
+    D0Cr=2.00E-5
+    D0Fe=1.00E-4
+
+    !DCr=(D0Cr*exp(-QCr/RT));
+    !DFe=(D0Fe*exp(-QFe/RT));
+    !DCr = D0Cr
+    !DFe = D0Fe
+    !MFe = DFe/RT
+    !MCr = DCr/RT
 
     !--- set initial c field
     call initial(calloy,nx,ny,c0)
@@ -218,8 +181,7 @@ call c_f_pointer(pout,out,[nx,ny])
     vtkfile = 'vtk/time_0.vtk'
     call savevtk(c0,nx,ny,nz,dx,dy,vtkfile)
 
-	plan =  fftw_plan_dft_2d ( nx, ny, in, out, FFTW_FORWARD, FFTW_MEASURE )
-	invplan = dfftw_plan_dft_2d ( nx, ny, in, out, FFTW_BACKWARD, FFTW_MEASURE )
+
 
     write(*,*)
 
@@ -231,74 +193,52 @@ call c_f_pointer(pout,out,[nx,ny])
 
     !--- start time loop
     do t=1,tmax
+		!call cpu_time(start)
 
-!        !--- apply pbc to c field
-!        call pbc(nx,ny,c0)
-!
-!        !--- calculate Laplacian of c
-!        call nabla2(c0,nx,ny,dx,dy,gr2c)
-!
-!        !--- calculate derivative of free energy
-!        call d1g(c0,nx,ny,df)
-!
-!        !--- calculate mu1
-!        mu1 = df-k*gr2c
-!
-!        !--- apply pbc to mu1
-!        call pbc(nx,ny,mu1)
-!
-!        !--- calculate gradient of mu1
-!        call nabla1(mu1,nx,ny,dx,dy,gr1mu1)
-!
-!        !--- calculate mobility
-!        call mobility(c0,nx,ny,mob)
-        call mobility(c,nx,ny,mob)
-!
-!        !--- calculate mu2
-!        mu2 = (1E18)*mob*gr1mu1
-!        
-!        !--- apply pbc to mu2
-!        call pbc(nx,ny,mu2)
-!
-!        !--- calculate gradient of mu2
-!        call nabla1(mu2,nx,ny,dx,dy,gr1mu2)
-!
-!        !--- update c field
-!        c  = c0 + dt*gr1mu2
-!        c0 = c
-
+        !mob = c*(1.0-c)*(c*MFe + (1.0-c)*MCr)
+        !call mobility(c,nx,ny,mob)
+		!print *, mob
+!----------------------
+!-------fft c -> ck
 		in = c
-		!ck = cmplx(float(0),float(0))
+		call fftw_execute_dft ( plan_c2ck, in, ck)
+!----------------------
+!----------------------
 
-		call fftw_execute_dft ( plan, in, out)
-		ck = out
+        !call d1g(c,nx,ny,df)
+        call d1g(c,nx,ny,df,Temp,RT)
 
-        call d1g(c,nx,ny,df)
+!----------------------
+!-------fft df -> dfk
 		in = df
+		call fftw_execute_dft (plan_df2dfk,in, dfk)
+!----------------------
+!----------------------
 
-		!dfk = cmplx(float(0),float(0))
+        !cktemp = ((ck - dt*(1E18*mob)*dfk*k2) / (1.0 + dt*(1E18*k)*k4*(1E18*mob)))/nxy;
+        cktemp = ((ck - dt*(1E18*mcoef_cr)*dfk*k2) / (1.0 + dt*(1E18*grcoef_cr)*k4*(1E18*mcoef_cr)))/nxy;
+        !cktemp = ((ck - dt*(mcoef_cr)*dfk*k2) / (1.0 + dt*(grcoef_cr)*k4*(mcoef_cr)))/nxy;
 
-		call fftw_execute_dft ( plan,in, out)
+!----------------------
+!-------fft ck -> c
+		call fftw_execute_dft ( plan_ck2c, cktemp, out)
+		c = out
+		!call cpu_time(finish)
+    	!print '("Time = ",f6.3," seconds.")',finish-start
+!----------------------
+!----------------------
 
-        in = (ck - dt*(1E18*mob)*dfk*k2) / (1.0 + dt*(1E18*k)*k4*(1E18*mob));
+!		do i=1,nx
+!			do j=1,ny
+!				if (c(i,j) >= 0.9999) then
+!					c(i,j) = 0.9999
+!				end if
+!				if (c(i,j) <= 0.00001) then
+!					c(i,j) = 0.00001
+!				end if
+!			enddo
+!		enddo
 
-		call fftw_execute_dft ( invplan , in , out)
-		c0 = out
-
-		c = c0/(nxy)
-
-		do i=1,nx
-			do j=1,ny
-				if (c(i,j) >= 0.9999) then
-					c(i,j) = 0.9999
-				end if
-				if (c(i,j) <= 0.00001) then
-					c(i,j) = 0.00001
-				end if
-			enddo
-		enddo
-
-		
 
         !--- output
         if(mod(t,freq)==0) then
@@ -331,6 +271,8 @@ call c_f_pointer(pout,out,[nx,ny])
         end if
 
     end do ! end of time loop
+
+    !call fftw_free(p)
 
     write(*,"(A)") "! ! ! ! ! ! ! ! ! ! Simulation end ! ! ! ! ! ! ! ! ! ! "
  
@@ -488,8 +430,8 @@ implicit none
 !    real*16 :: GFe,GCr,p,D,B0,Tc,tal,a0,a1,P,A,L
 !    real*16 :: g(0:nx+1,0:ny+1)
 !    real*16 :: c(0:nx+1,0:ny+1)
-!	
-!!	Dados SGTE da energia livre em funcao da Temperatura para Fe BCC_A2 paramagnetico
+!
+!!Dados SGTE da energia livre em funcao da Temperatura para Fe BCC_A2 paramagnetico
 !
 !    p = 0.4
 !    D = 1.55828482; ! D = 510/1125 + (11692/15975)*(1/p-1)
@@ -532,68 +474,68 @@ end subroutine gchem
 !------------------------------------------------------------------------------
 ! 1st derivative of free energy
 
-!subroutine d1g(c,nx,ny,dg,T,RT)
-subroutine d1g(c,nx,ny,dg)
+subroutine d1g(c,nx,ny,dg,Temp,RT)
+!subroutine d1g(c,nx,ny,dg)
 implicit none
 
     integer, intent(in) :: nx,ny
     real*8, intent(in) :: c(1:nx,1:ny)
+    real*16, intent(in) :: Temp
+    real*16, intent(in) :: RT
     real*8, intent(out) :: dg(1:nx,1:ny)
-    real*16 :: A1,A2,A3,A4,A5,A6,A7
-    !double precision :: g(0:nx+1,0:ny+1)
-    !double precision :: c(0:nx+1,0:ny+1)
-    !double precision, dimension(nx,ny) :: g,c
-	
-    A1 =-24468.31
-    A2 =-28275.33
-    A3 = 4167.994
-    A4 = 7052.907
-    A5 = 12089.93
-    A6 = 2568.625
-    A7 =-2345.293
-
-    dg = A1-A2 + A3*(1+log(c)) - A4*(1+log(1-c)) + A5*(1-2*c) + &
-         A6*(-6*c**2 + 6*c -1) + A7*(-16*c**3 + 24*c**2 - 10*c + 1)
-
-!    real*16 :: GFe,GCr,p,D,B0,Tc,tal,a0,a1,P,A,L
-!    real*16 :: g(0:nx+1,0:ny+1)
-!    real*16 :: c(0:nx+1,0:ny+1)
+    real*16 :: GFe,GCr,Gpres,Gmag,gtal,p,D,B0,Tc,tal,a0,a1,Pres,A,L
+!    real*16 :: A1,A2,A3,A4,A5,A6,A7
+!    !double precision :: g(0:nx+1,0:ny+1)
+!    !double precision :: c(0:nx+1,0:ny+1)
+!    !double precision, dimension(nx,ny) :: g,c
 !	
-!!	Dados SGTE da energia livre em funcao da Temperatura para Fe BCC_A2 paramagnetico
+!    A1 =-24468.31
+!    A2 =-28275.33
+!    A3 = 4167.994
+!    A4 = 7052.907
+!    A5 = 12089.93
+!    A6 = 2568.625
+!    A7 =-2345.293
 !
-!    p = 0.4
-!    D = 1.55828482; ! D = 510/1125 + (11692/15975)*(1/p-1)
-!    B0 =  2.22;
-!    Tc = T/1043;
-!    tal = 1/Tc;
-!    if (tal <= 1) then
-!        gtal = 1-((79/140)*(1/p)*(tal^(-1)) + (474/497)*(1/p-1)*((tal^3)/6 + (tal^9)/135 + (tal^15)/600))/D;
-!    else
-!        gtal = -( ((tal^(-5))/10 + (tal^(-15))/315 + (tal^(-25))/1500 )/D );
-!    end if
-!    Gmag = RT*log(B0+1)*gtal;
-!
-!    a0 = 2.3987E-5;
-!    a1 = 2.569E-8;
-!    P = 10E5;
-!    A = 7.042095E-6;
-!    Gpres = A*P*(1+a0*T + (a1/2)*(T^2));
-!
-!    Gfe = 0 + Gmag  + Gpres; ! 298.15 < T < 6000.00
-!
-!
-!!	Dados SGTE da energia livre em funcao da Temperatura para Cr BCC_A2 paramagnetico
-!    a0 = 1.5E-5;
-!    a1 = 1.84E-8;
-!    P = 10E5;
-!    A = 7.188E-6;
-!    Gpres = A*P*(1+a0*T + (a1/2)*(T^2));
-!
-!    Gcr = 0 + Gpres; ! 311.50 < T < 6000.00
-!
-!    L = L = 20500 - 9.68*T;
-!
-!    dg =(-GFe+GCr+L*(1-2*c)+RT*log(c/(1-c)))/RT;
+!    dg = A1-A2 + A3*(1+log(c)) - A4*(1+log(1-c)) + A5*(1-2*c) + &
+!         A6*(-6*c**2 + 6*c -1) + A7*(-16*c**3 + 24*c**2 - 10*c + 1)
+
+	
+!	Dados SGTE da energia livre em funcao da Temperatura para Fe BCC_A2 paramagnetico
+
+    p = 0.4
+    D = 1.55828482; ! D = 510/1125 + (11692/15975)*(1/p-1)
+    B0 =  2.22;
+    Tc = Temp/1043;
+    tal = 1/Tc;
+    if (tal <= 1) then
+        gtal = 1-((79/140)*(1/p)*(tal**(-1)) + (474/497)*(1/p-1)*((tal**3)/6 + (tal**9)/135 + (tal**15)/600))/D;
+    else
+        gtal = -( ((tal**(-5))/10 + (tal**(-15))/315 + (tal**(-25))/1500 )/D );
+    end if
+    Gmag = RT*log(B0+1)*gtal;
+
+    a0 = 2.3987E-5;
+    a1 = 2.569E-8;
+    Pres = 10E5;
+    A = 7.042095E-6;
+    Gpres = A*Pres*(1+a0*Temp + (a1/2)*(Temp**2));
+
+    Gfe = 0 + Gmag  + Gpres; ! 298.15 < Temp < 6000.00
+
+
+!	Dados SGTE da energia livre em funcao da Temperatura para Cr BCC_A2 paramagnetico
+    a0 = 1.5E-5;
+    a1 = 1.84E-8;
+    Pres = 10E5;
+    A = 7.188E-6;
+    Gpres = A*Pres*(1+a0*Temp + (a1/2)*(Temp**2));
+
+    Gcr = 0 + Gpres; ! 311.50 < Temp < 6000.00
+
+    L = 20500 - 9.68*Temp;
+
+    dg =(-GFe+GCr+L*(1-2*c)+RT*log(c/(1-c)));
 
     return
 

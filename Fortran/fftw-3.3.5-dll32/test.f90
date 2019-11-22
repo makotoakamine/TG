@@ -3,9 +3,12 @@ use, intrinsic :: iso_c_binding
 use fftw3
 !include fftw3
 implicit none
+real :: start, finish
+real :: xteste
+complex(C_DOUBLE_COMPLEX) :: xcomplex
 
 real*16 , parameter :: PI=4.D0*DATAN(1.D0)
-integer, parameter :: N=128
+integer, parameter :: N=256
 real*16, parameter :: a=0
 real*16, parameter :: b=4*PI
 real*16, parameter :: L=(b-a)
@@ -36,7 +39,9 @@ type(C_PTR) :: pk
 double precision :: w
 
 type(C_PTR) plan
+type(C_PTR) plan2
 type(C_PTR) planinv
+type(C_PTR) plan2inv
   !double  complex :: in, out
 complex(C_DOUBLE_COMPLEX), pointer :: in(:)
 type(C_PTR) :: pin
@@ -77,6 +82,12 @@ call c_f_pointer(pin, in, [N])
 pout = fftw_alloc_complex(int(N,C_SIZE_T))
 call c_f_pointer(pout, out, [N])
 
+  plan = fftw_plan_dft_1d( N, in, out, FFTW_FORWARD, FFTW_MEASURE )
+  plan2 = fftw_plan_dft_r2c_1d( N, y, yt, FFTW_MEASURE )
+  planinv = fftw_plan_dft_1d( N, in, out, FFTW_BACKWARD, FFTW_MEASURE )
+  plan2inv = fftw_plan_dft_c2r_1d( N, in, y, FFTW_MEASURE )
+
+
 x = (/(i*dx, i=0,(N-1),1)/)
 
   y = sin(x)
@@ -90,61 +101,41 @@ x = (/(i*dx, i=0,(N-1),1)/)
 	k(i) = dcmplx(float(0),(i-1)*w)
 	k(i+N2) = dcmplx(float(0),(i-1-N2)*w)
   enddo
+  xteste = -1.0
+  xteste = sqrt(xteste)
+  k(4) = xteste
+  xcomplex = cmplx(float(0),xteste)
+  print *, imagpart(xcomplex)
+  if (isnan(imagpart(xcomplex))) stop '"x" is a NaN'
 
-!  do i = 1,N,1
-!    in(i) = dcmplx(y(i),float(0))
-!    write(*,*) '    in(',i,') = ',in(i)
-!  enddo
+!  yt = cmplx(float(0),float(0))
+!  call fftw_execute_dft_r2c( plan2, y,yt )
+!  in = (yt*k)/N
+!  y = 0
+!  call fftw_execute_dft_c2r( plan2inv, in, y )
+!
+!
+!!  write(*,*) 'derivada espectral | derivada real'
+!!  do i = 1,N,1
+!!    write(*,*) '    ',N,' * y(',i,') = ',y(i) , ' | ' , dy(i)
+!!  enddo
+!
+!  !y = out
+!
+!  dev = sum(abs(dy-y))/N
+!  print *, "dev= ", dev
 
-  plan = fftw_plan_dft_1d( N, in, out, FFTW_FORWARD, FFTW_MEASURE )
-  planinv = fftw_plan_dft_1d( N, in, out, FFTW_BACKWARD, FFTW_MEASURE )
 
   in = y
-  call fftw_execute_dft( plan, in,out )
-    yt = out
-  idyt = yt*k
-  in = idyt
-
-  call fftw_execute_dft( planinv, in, out )
-
-  write(*,*) 'derivada espectral | derivada real'
-  do i = 1,N,1
-    write(*,*) '    ',N,' * out(',i,') = ',out(i)/N , ' | ' , dy(i)
-  enddo
-
-  y = out/N
-
-  dev = sum(abs(dy-y))/N
-  print *, "dev= ", dev
-  
-
-  !y = sin(2*x)+cos(20+x)
-  !dy = -cos(2*x)+sin(20+x)
-  y = sin(2*x)-cos(x)
-  dy = 2*cos(2*x)+sin(x)
-
-  in = y
-  call fftw_execute_dft( plan, in,out )
-
-    yt = out
-  idyt = yt*k
-  in = idyt
-
-
-  call fftw_execute_dft( planinv, in, out )
-
-  write(*,*) 'derivada espectral | derivada real'
-  do i = 1,N,1
-    write(*,*) '    ',N,' * out(',i,') = ',out(i)/N , ' | ' , dy(i)
-  enddo
-
-  !write(*,*) 'derivada real'
-  !print *, dy
-  y = out/N
-
+  call fftw_execute_dft( plan, in ,out )
+  in = (out*k)/N
+  call fftw_execute_dft( planinv, in,out )
+  y=out
   dev = sum(abs(dy-y))/N
   print *, "dev= ", dev
 
   call fftw_destroy_plan( plan )
+  call fftw_destroy_plan( plan2 )
   call fftw_destroy_plan ( planinv )
+  call fftw_destroy_plan ( plan2inv )
   end
